@@ -7,6 +7,7 @@ module Dependabot
   module Nuget
     class FileUpdater < Dependabot::FileUpdaters::Base
       require_relative "file_updater/packages_config_declaration_finder"
+      require_relative "file_updater/corext_config_declaration_finder"
       require_relative "file_updater/project_file_declaration_finder"
       require_relative "file_updater/property_value_updater"
 
@@ -54,12 +55,18 @@ module Dependabot
         end
       end
 
+      def corext_config_files
+        dependency_files.select do |f|
+          f.name.split("/").last.casecmp("corext.config").zero?
+        end
+      end
+
       def global_json
         dependency_files.find { |f| f.name.casecmp("global.json").zero? }
       end
 
       def check_required_files
-        return if project_files.any? || packages_config_files.any?
+        return if project_files.any? || packages_config_files.any? || corext_config_files.any?
 
         raise "No project file or packages.config!"
       end
@@ -144,6 +151,13 @@ module Dependabot
               declaring_requirement: requirement,
               packages_config:
                 packages_config_files.find { |f| f.name == requirement_fn }
+            )
+          elsif requirement_fn.split("/").last.casecmp("corext.config").zero?
+            CorextConfigDeclarationFinder.new(
+                dependency_name: dependency.name,
+                declaring_requirement: requirement,
+                corext_config:
+                    corext_config_files.find { |f| f.name == requirement_fn }
             )
           else
             ProjectFileDeclarationFinder.new(

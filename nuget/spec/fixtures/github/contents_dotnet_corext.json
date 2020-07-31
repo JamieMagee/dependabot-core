@@ -1,0 +1,20 @@
+[
+  {
+    "name": "corext.config",
+    "path": ".corext/corext.config",
+    "sha": "b353132ecf9b4ee712f5527319f3c6c59a581578",
+    "size": 0,
+    "url": "https://api.github.com/repos/fsharp/fsharp/contents/.corext/corext.config?ref=master",
+    "html_url": "https://github.com/fsharp/fsharp/blob/master/.corext/corext.config",
+    "git_url": "https://api.github.com/repos/fsharp/fsharp/git/blobs/b353132ecf9b4ee712f5527319f3c6c59a581578",
+    "download_url": "https://raw.githubusercontent.com/fsharp/fsharp/master/.corext/corext.config",
+    "type": "file",
+    "content": "",
+    "encoding": "base64",
+    "_links": {
+      "self": "https://api.github.com/repos/fsharp/fsharp/contents/.corext/corext.config?ref=master",
+      "git": "https://api.github.com/repos/fsharp/fsharp/git/blobs/b353132ecf9b4ee712f5527319f3c6c59a581578",
+      "html": "https://github.com/fsharp/fsharp/blob/master/.corext/corext.config"
+    }
+  }
+]

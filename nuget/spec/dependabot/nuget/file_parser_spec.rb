@@ -301,5 +301,36 @@ RSpec.describe Dependabot::Nuget::FileParser do
         end
       end
     end
+
+    context "with a corext.config file" do
+      let(:files) { [corext_config] }
+      let(:corext_config) do
+        Dependabot::DependencyFile.new(
+            name: "corext.config",
+            content: fixture("corext_configs", "corext.config")
+        )
+      end
+
+      its(:length) { is_expected.to eq(9) }
+
+      describe "the last dependency" do
+        subject(:dependency) { dependencies.first }
+
+        it "has the right details" do
+          expect(dependency).to be_a(Dependabot::Dependency)
+          expect(dependency.name).
+              to eq("Microsoft.CodeDom.Providers.DotNetCompilerPlatform")
+          expect(dependency.version).to eq("1.0.0")
+          expect(dependency.requirements).to eq(
+           [{
+                requirement: "1.0.0",
+                file: "corext.config",
+                groups: [],
+                source: nil
+            }]
+          )
+        end
+      end
+    end
   end
 end

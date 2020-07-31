@@ -14,6 +14,7 @@ module Dependabot
       require "dependabot/file_parsers/base/dependency_set"
       require_relative "file_parser/project_file_parser"
       require_relative "file_parser/packages_config_parser"
+      require_relative "file_parser/corext_config_parser"
       require_relative "file_parser/global_json_parser"
 
       PACKAGE_CONF_DEPENDENCY_SELECTOR = "packages > packages"
@@ -22,6 +23,7 @@ module Dependabot
         dependency_set = DependencySet.new
         dependency_set += project_file_dependencies
         dependency_set += packages_config_dependencies
+        dependency_set += corext_config_dependencies
         dependency_set += global_json_dependencies if global_json
         dependency_set.dependencies
       end
@@ -50,6 +52,17 @@ module Dependabot
         dependency_set
       end
 
+      def corext_config_dependencies
+        dependency_set = DependencySet.new
+
+        corext_config_files.each do |file|
+          parser = CorextConfigFileParser.new(packages_config: file)
+          dependency_set += parser.dependency_set
+        end
+
+        dependency_set
+      end
+
       def global_json_dependencies
         return DependencySet.new unless global_json
 
@@ -71,10 +84,17 @@ module Dependabot
         end
       end
 
+      def corext_config_files
+        dependency_files.select do |f|
+          f.name.split("/").last.casecmp("corext.config").zero?
+        end
+      end
+
       def project_import_files
         dependency_files -
           project_files -
           packages_config_files -
+          corext_config_files -
           nuget_configs -
           [global_json]
       end
@@ -88,7 +108,7 @@ module Dependabot
       end
 
       def check_required_files
-        return if project_files.any? || packages_config_files.any?
+        return if project_files.any? || packages_config_files.any? || corext_config_files.any?
 
         raise "No project file or packages.config!"
       end

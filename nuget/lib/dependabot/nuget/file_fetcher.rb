@@ -11,6 +11,8 @@ module Dependabot
 
       def self.required_files_in?(filenames)
         return true if filenames.any? { |f| f.match?(/^packages\.config$/i) }
+        return true if filenames.any? { |f| f.match?(/^\.corext$/i) }
+        return true if filenames.any? { |f| f.match?(/^corext\.config$/i) }
         return true if filenames.any? { |f| f.end_with?(".sln") }
         return true if filenames.any? { |f| f.match?("^src$") }
 
@@ -26,26 +28,27 @@ module Dependabot
       def fetch_files
         fetched_files = []
         fetched_files += project_files
-        fetched_files += directory_build_files
-        fetched_files += imported_property_files
-
         fetched_files += packages_config_files
-        fetched_files += nuget_config_files
-        fetched_files << global_json if global_json
-        fetched_files << packages_props if packages_props
+        fetched_files += corext_config_files
 
-        fetched_files = fetched_files.uniq
-
-        if project_files.none? && packages_config_files.none?
+        if project_files.none? && packages_config_files.none? && corext_config_files.none?
           if @missing_sln_project_file_errors&.any?
             raise @missing_sln_project_file_errors.first
           end
 
           raise(
             Dependabot::DependencyFileNotFound,
-            File.join(directory, "<anything>.(cs|vb|fs)proj")
+            File.join(directory, "<anything>.(cs|vb|fs)proj/packages.config")
           )
         end
+
+        fetched_files += directory_build_files
+        fetched_files += imported_property_files
+        fetched_files += nuget_config_files
+        fetched_files << global_json if global_json
+        fetched_files << packages_props if packages_props
+
+        fetched_files = fetched_files.uniq
 
         fetched_files
       end
@@ -61,11 +64,8 @@ module Dependabot
             project_files += sln_project_files
             project_files
           end
-      rescue Octokit::NotFound, Gitlab::Error::NotFound
-        raise(
-          Dependabot::DependencyFileNotFound,
-          File.join(directory, "<anything>.(cs|vb|fs)proj")
-        )
+      rescue *CLIENT_NOT_FOUND_ERRORS
+        project_files
       end
 
       def packages_config_files
@@ -79,7 +79,27 @@ module Dependabot
             file = repo_contents(dir: dir).
                    find { |f| f.name.casecmp("packages.config").zero? }
             fetch_file_from_host(File.join(dir, file.name)) if file
+          rescue *CLIENT_NOT_FOUND_ERRORS
+            []
           end.compact
+      end
+
+      def corext_config_files
+        return @corext_file if @corext_file
+
+        @corext_file = repo_contents.select { |f| f.name == "corext.config" }
+        corext_dir = repo_contents.any? { |f| f.name == ".corext" && f.type == "dir" }
+
+        if @corext_file.none? && corext_dir
+          @corext_file +=
+            repo_contents(dir: ".corext").
+            select { |f| f.type == "file" && f.name == "corext.config" }.
+            map { |f| fetch_file_from_host(".corext/corext.config") }
+        end
+
+        @corext_file
+      rescue *CLIENT_NOT_FOUND_ERRORS
+        []
       end
 
       def sln_file_names

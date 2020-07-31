@@ -723,19 +723,20 @@ RSpec.describe Dependabot::Nuget::FileFetcher do
     end
   end
 
-  context "witha bad directory" do
-    let(:directory) { "dir/" }
+  context "with a corext.config" do
     before do
-      stub_request(:get, url + "dir?ref=sha").
-        with(headers: { "Authorization" => "token token" }).
-        to_return(status: 404)
+      stub_request(:get, url + "?ref=sha").
+          with(headers: { "Authorization" => "token token" }).
+          to_return(
+              status: 200,
+              body: fixture("github", "contents_dotnet_corext.json"),
+              headers: { "content-type" => "application/json" }
+          )
     end
 
-    it "raises a Dependabot::DependencyFileNotFound error" do
-      expect { file_fetcher_instance.files }.
-        to raise_error(Dependabot::DependencyFileNotFound) do |error|
-          expect(error.file_path).to eq("dir/<anything>.(cs|vb|fs)proj")
-        end
+    it "fetches the corext.config" do
+      expect(file_fetcher_instance.files.map(&:name)).
+          to match_array(%w(corext.config))
     end
   end
 end
